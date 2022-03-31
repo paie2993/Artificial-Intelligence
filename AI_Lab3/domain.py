@@ -73,6 +73,7 @@ class Gene:
 class Individual:
     def __init__(self, chromosomeSize=0, mapM=Map()):  # subject to change
         self.__chromosomeSize = chromosomeSize
+        # Linear discrete non-binary integer random representation
         self.__chromosome = [Gene(0, mapM.n) for i in range(self.__chromosomeSize)]  # subject to change
         self.__fitness = None
         self.__mapM = mapM
@@ -110,11 +111,24 @@ class Individual:
         self.__fitness = fitnessValue
         return fitnessValue
 
-    # probably safe to recompute fitness
-    def mutate(self, mutateProbability=0.04):
+    # Implements creep mutation
+    def __creepMutation(self, creepValue, signProbability, mutateProbability, gene, coordinate):
+        if coordinate not in [0, 1]:
+            raise Exception("Index out of range: " + coordinate)
         if random() < mutateProbability:
-            pass
-            # perform a mutation with respect to the representation
+            value = creepValue
+            if random() < signProbability:
+                value = -value
+            gene.code[coordinate] = abs(gene.code[0] + value) % self.__mapM.n
+
+    # Uses creep mutation
+    def mutate(self, mutateProbability=0.04):
+        creepValue = max(1, int(self.__mapM.n / self.__chromosomeSize))
+        signProbability = 0.5
+
+        for gene in self.__chromosome:
+            self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 0)
+            self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 1)
 
     def crossover(self, otherParent, crossoverProbability=0.8):
         offspring1, offspring2 = Individual(self.__chromosomeSize), Individual(self.__chromosomeSize)
