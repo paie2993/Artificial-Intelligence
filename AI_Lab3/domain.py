@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
+from copy import deepcopy
 from random import randint, random
 from utils import *
-import numpy as np
+from functools import reduce
 
 
 # the class Gene can be replaced with int or float, or other types
@@ -14,7 +14,7 @@ class Map:
         self.m = m
         self.surface = [[0 for j in range(self.n)] for i in range(self.m)]
 
-    def randomMap(self, fill=0.2):
+    def randomMap(self, fill=RANDOM_MAP_FILL):
         for i in range(self.n):
             for j in range(self.m):
                 if random() <= fill:
@@ -130,26 +130,133 @@ class Individual:
             self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 0)
             self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 1)
 
-    def crossover(self, otherParent, crossoverProbability=0.8):
-        offspring1, offspring2 = Individual(self.__chromosomeSize), Individual(self.__chromosomeSize)
-        if random() < crossoverProbability:
-            pass
-            # perform the crossover between the self and the otherParent 
+    # Implements uniform crossover
+    def crossover(self, otherParent, crossoverProbability=0.5):
+        offspring1, offspring2 = Individual(self.__chromosomeSize, self.__mapM), Individual(self.__chromosomeSize,
+                                                                                            self.__mapM)
+
+        for i in range(self.__chromosomeSize):
+            r = random()
+            if r < crossoverProbability:
+                offspring1.__chromosome[i].code = deepcopy(self.__chromosome[i].code)
+                offspring2.__chromosome[i].code = deepcopy(otherParent.__chromosome[i].code)
+            else:
+                offspring1.__chromosome[i].code = deepcopy(self.__chromosome[i].code)
+                offspring2.__chromosome[i].code = deepcopy(otherParent.__chromosome[i].code)
 
         return offspring1, offspring2
 
 
 class Population:
-    def __init__(self, populationSize=0, individualChromosomeSize=0, lower=0, upper=0, mapM=Map()):
+    def __init__(self, populationSize=1, individualChromosomeSize=1, mapM=Map()):
         self.__populationSize = populationSize
         self.__individuals = [Individual(individualChromosomeSize, mapM) for i in range(populationSize)]
 
     def evaluate(self):
-        # evaluates the population
-        for individual in self.__individuals:
-            individual.fitness()
+        fitnesses = [individual.fitness() for individual in self.__individuals]
+        return reduce(lambda a, b: a + b, fitnesses)
 
-    def selection(self, k=0):
-        # perform a selection of k individuals from the population
-        # and returns that selection
-        pass
+    def __linearRanking(self, selectionPressure, rank):
+        if selectionPressure <= 1 or selectionPressure > 2:
+            raise Exception("Selection pressure poorly chosen: " + str(selectionPressure))
+        if self.__populationSize <= 1:
+            raise Exception(
+                "Cannot compute linear ranking when the population size is <= 1: " + str(self.__populationSize))
+        if rank < 1:
+            raise Exception("Rank incorrectly specified: " + str(rank))
+        return (2 - selectionPressure) / self.__populationSize + \
+               2 * rank * (selectionPressure - 1) / (self.__populationSize * (self.__populationSize - 1))
+
+    # perform a selection of k individuals from the population
+    # and returns that selection
+    # 1. proportional selection
+    # 2. rank selection
+    # 3. tournament selection
+    # Implements rank selection
+    def selection(self, k=SELECTION_SIZE):
+        if k < 2:
+            raise Exception("Can't select less than 2 individuals for reproduction: k = " + str(k))
+
+        selectionPressure = SELECTION_PRESSURE
+        if selectionPressure <= 1 or selectionPressure > 2:
+            raise Exception("Selection pressure poorly chosen: " + str(selectionPressure))
+
+        # there is no point in figuring out how to select from a population
+        # with only one individual; hope for mutations
+        if self.__populationSize <= 1:
+            return deepcopy(self.__individuals * k)
+
+        # sort individuals based on their fitness
+        rankedList = deepcopy(self.__individuals)
+        # the fittest is the last
+        rankedList.sort(key=Individual.fitness)
+
+        # pair every individual with their linear ranking
+        linearlyRankedList = []
+        for i in range(self.__populationSize):
+            linearlyRankedList.append((self.__individuals[i], self.__linearRanking(selectionPressure, i)))
+        # order individuals such that the fittest are the first, the weakest last
+        linearlyRankedList.reverse()
+
+        # select k winners
+        winners = []
+        for i in range(k):
+            threshold = random()
+            partialSum = 0
+            j = 0
+            while partialSum < threshold and j < self.__populationSize:
+                partialSum += linearlyRankedList[j][1]
+                # if the partial sum passes the threshold when the value of the current's individual linear rank
+                # is added, then add the current individual to the list of winners
+                if partialSum >= threshold:
+                    winners.append(linearlyRankedList[j][0])
+                j += 1
+
+        return winners
+
+    def mutationSeason(self, mutateProbability=MUTATE_PROBABILITY):
+        for individual in self.__individuals:
+            individual.mutate(mutateProbability)
+
+    # challengers: list of Individuals
+    def survivalOfTheFittest(self, challengers):
+        for challenger in challengers:
+            if not isinstance(challenger, Individual):
+                raise Exception("Only Individuals can enter the population")
+
+        arena = self.__individuals + challengers
+
+        # ELITISM: only the fittest survive from one generation to another
+        arena.sort(reverse=True, key=Individual.fitness)
+        while len(arena) > self.__populationSize:
+            arena.pop(-1)
+        self.__individuals = arena
+
+
+def matingSeason(winners, crossoverProbability=CROSSOVER_PROBABILITY):
+    beforeBreak = BEFORE_BREAK
+    offspring = []
+    while len(winners) > 0:
+
+        first = randint(0, len(winners))
+        second = randint(0, len(winners))
+        i = 0
+        while first != second and i < beforeBreak:
+            first = randint(0, len(winners))
+            second = randint(0, len(winners))
+        if first == second:
+            break
+
+        parent1 = winners[first]
+        parent2 = winners[second]
+
+        i1 = winners.index(parent1)
+        winners.remove(parent1)
+        i2 = winners.index(parent2)
+        winners.remove(parent2)
+
+        offspring1, offspring2 = parent1.crossover(parent2, crossoverProbability)
+        offspring.append(offspring1)
+        offspring.append(offspring2)
+
+    return offspring

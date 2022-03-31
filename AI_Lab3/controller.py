@@ -1,34 +1,50 @@
 from repository import *
+from random import choice
 
 
 class Controller:
-    def __init__(self, args):
-        # args - list of parameters needed in order to create the Controller
-        pass
+    def __init__(self, repository=Repository()):
+        self.__repository = repository
 
-    def iteration(self, args):
-        # args - list of parameters needed to run one iteration
-        # a iteration:
-        # selection of the parents
-        # create offsprings by crossover of the parents
+    def setMap(self, mapM):
+        self.__repository.setMap(mapM)
+
+    def iteration(self, population, k=SELECTION_SIZE):
+        # selection of parents
+        winners = population.selection(k)
+
+        # create offspring by crossover of the parents
+        crossoverProbability = CROSSOVER_PROBABILITY
+        offspring = matingSeason(winners, crossoverProbability)
+
         # apply some mutations
+        mutateProbability = MUTATE_PROBABILITY
+        population.mutationSeason(mutateProbability)
+
         # selection of the survivors
-        pass
+        population.survivalOfTheFittest(offspring)
 
-    def run(self, args):
-        # args - list of parameters needed in order to run the algorithm
+    def run(self, population, noIterations=NO_ITERATIONS):
+        fitnesses = []
 
-        # until stop condition
-        #    perform an iteration
-        #    save the information needed for the statistics
+        for i in range(noIterations):
+            self.iteration(population)
+            # save the information needed for the statistics
+            currentFitness = population.evaluate()
+            fitnesses.append(currentFitness)
 
-        # return the results and the info for statistics
-        pass
+        return fitnesses
 
-    def solver(self, args):
-        # args - list of parameters needed in order to run the solver
-
+    def solver(self, totalRuns=TOTAL_RUNS, populationSize=POPULATION_SIZE, individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
         # create the population,
+        population = self.__repository.createPopulation(populationSize, individualChromosomeSize)
+        noIterations = NO_ITERATIONS
+
         # run the algorithm
+        results = []
+        for i in range(totalRuns):
+            runResults = self.run(population, noIterations)
+            results.append(runResults)
+
         # return the results and the statistics
-        pass
+        return results

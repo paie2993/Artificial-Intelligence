@@ -5,15 +5,21 @@ from domain import *
 
 
 class Repository:
-    def __init__(self):
-        self.__populations = []
-        self.map = Map()
+    def __init__(self, mapM=Map()):
+        self.__mapM = mapM
+        self.__population = None
 
-    def createPopulation(self, args):
-        # TODO: args = [populationSize, individualGenomeSize] -- you can add more args
-        lower = 0
-        upper = self.map.n
-        return Population(args[0], args[1], 0, upper, self.map)
+    def setMap(self, mapM):
+        self.__mapM = mapM
 
-    # TODO : add the other components for the Repository:
+    def createPopulation(self, populationSize=POPULATION_SIZE, individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
+        population = Population(populationSize, individualChromosomeSize, self.__mapM)
+        self.__population = population
+        return population
+
+    #    add the other components for the Repository:
     #    load and save from file, etc
+
+    def loadMap(self, fileName):
+        mapM = pickle.load(fileName)
+        return
