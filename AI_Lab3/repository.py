@@ -20,7 +20,10 @@ class Repository:
 
     def createPopulation(self, populationSize=POPULATION_SIZE, individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
         population = Population(populationSize, individualChromosomeSize, self.__mapM)
-        self.__populations.append(population)
+        if self.__populations is None:
+            self.__populations = [population]
+        else:
+            self.__populations.append(population)
         return population
 
     #    add the other components for the Repository:

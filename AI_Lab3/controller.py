@@ -46,6 +46,6 @@ class Controller:
             # runResult = all the fitnesses from every iteration, for the currently tested population
             runResults = self.__run(population, noIterations)
 
-            statistics.append(runResults)
+            statistics.append([i, runResults])
 
         return statistics

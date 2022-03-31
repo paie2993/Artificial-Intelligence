@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 from copy import deepcopy
 from random import randint, random
 from utils import *
@@ -25,14 +26,14 @@ class Map:
 
     def isBrick(self, square):
         if not self.isValid(square):
-            raise Exception("invalid square: " + square)
+            raise Exception("invalid square: " + str(square))
         return True if self.surface[square[0]][square[1]] == 1 else False
 
     # square: pair of coordinates x,y
     # seenSquares: set of pairs of coordinates
     def visibleSquares(self, square, seenSquares):
         if not self.isValid(square):
-            raise Exception("invalid square: " + square)
+            raise Exception("invalid square: " + str(square))
 
         # from inside a brick, neighbouring squares are not visible
         if self.isBrick(square):
@@ -40,13 +41,14 @@ class Map:
 
         x = square[0]
         y = square[1]
+        seenSquares.add((x, y))
         for var in v:
             xx = x + var[0]
             yy = y + var[1]
             while self.isValid([xx, yy]) and not self.isBrick([xx, yy]):
-                seenSquares.add([xx, yy])
-                xx = x + var[0]
-                yy = y + var[1]
+                seenSquares.add((xx, yy))
+                xx = xx + var[0]
+                yy = yy + var[1]
 
     def __str__(self):
         string = ""
@@ -58,8 +60,10 @@ class Map:
 
 
 def areNeighbours(firstSquare, secondSquare):
+    if firstSquare == secondSquare:
+        return True
     for var in v:
-        if [firstSquare[0] + var[0], firstSquare[1] + var[1]] == secondSquare or firstSquare == secondSquare:
+        if [firstSquare[0] + var[0], firstSquare[1] + var[1]] == secondSquare:
             return True
     return False
 
@@ -71,12 +75,15 @@ class Gene:
 
 
 class Individual:
-    def __init__(self, chromosomeSize=0, mapM=Map()):  # subject to change
+    def __init__(self, chromosomeSize=0, mapM=Map()):
         self.__chromosomeSize = chromosomeSize
         # Linear discrete non-binary integer random representation
-        self.__chromosome = [Gene(0, mapM.n) for i in range(self.__chromosomeSize)]  # subject to change
+        self.__chromosome = [Gene(0, mapM.n) for i in range(self.__chromosomeSize)]
         self.__fitness = None
         self.__mapM = mapM
+
+    def getChromosome(self):
+        return self.__chromosome
 
     def fitness(self):
         # 1. number of objectives       : single
@@ -85,6 +92,7 @@ class Individual:
 
         # higher number of empty squared covered means better individual
 
+        # 1. paths must be inside map (valid squares)
         # 1. paths must be cohesive (no jumping)
         # 2. paths must not include bricks
         # 3. paths must cover as many empty squares as possible
@@ -95,19 +103,22 @@ class Individual:
             if not areNeighbours(self.__chromosome[i].code, self.__chromosome[i + 1].code):
                 nonContinuous += 1
 
-        # paths must not include bricks
-        bricks = 0
+        # paths must not include bricks and all squares must be inside the map
+        nonValid = 0
         for gene in self.__chromosome:
-            if self.__mapM.isBrick(gene.code):
-                bricks += 1
+            if not self.__mapM.isValid(gene.code) or self.__mapM.isBrick(gene.code):
+                nonValid += 1
 
         # paths must cover as many empty squares as possible
         seenSquares = set()
         for gene in self.__chromosome:
-            self.__mapM.visibleSquares(gene.code, seenSquares)
+            if self.__mapM.isValid(gene.code):
+                self.__mapM.visibleSquares(gene.code, seenSquares)
+
+        print("Passed")
 
         # fitness = - number of seen squares * (discontinuous tracks + bricks)
-        fitnessValue = - len(seenSquares) * (nonContinuous + bricks)
+        fitnessValue = - len(seenSquares) * (nonContinuous + nonValid)
         self.__fitness = fitnessValue
         return fitnessValue
 
@@ -152,6 +163,9 @@ class Population:
         self.__populationSize = populationSize
         self.__individuals = [Individual(individualChromosomeSize, mapM) for i in range(populationSize)]
 
+    def getIndividuals(self):
+        return self.__individuals
+
     def evaluate(self):
         fitnesses = [individual.fitness() for individual in self.__individuals]
         return reduce(lambda a, b: a + b, fitnesses)
@@ -194,7 +208,8 @@ class Population:
         # pair every individual with their linear ranking
         linearlyRankedList = []
         for i in range(self.__populationSize):
-            linearlyRankedList.append((self.__individuals[i], self.__linearRanking(selectionPressure, i)))
+            # the lowest rank is 1, so for the element with index i, rank is i + 1 (indexing starts from 0)
+            linearlyRankedList.append((self.__individuals[i], self.__linearRanking(selectionPressure, i + 1)))
         # order individuals such that the fittest are the first, the weakest last
         linearlyRankedList.reverse()
 

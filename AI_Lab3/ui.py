@@ -2,10 +2,13 @@
 
 
 # imports
+from statistics import mean, stdev
+
 from gui import *
 from repository import *
 from domain import *
 from controller import Controller
+import matplotlib.pyplot as plt
 
 
 class UI:
@@ -143,7 +146,7 @@ class UI:
             option = input("Option: ").strip().lower()
             if option == "a":
                 for key in self.__parameters:
-                    print(key + ": " + self.__parameters[key])
+                    print(key + ": " + str(self.__parameters[key]))
                 print()
             elif option == "b":
                 try:
@@ -223,23 +226,42 @@ class UI:
         statistics = self.__controller.solver(totalRuns, noIterations, populationSize, individualChromosomeSize)
         self.__statistics = statistics
 
-    def runVisualiseStatistics(self):
-
-        pass
-
-    def runViewDrone(self):
+    def preconditionsValidation(self):
         if self.__controller is None:
             print("Controller is not initialized (consider running the solver first)")
-            return
+            return False
         repository = self.__controller.getRepository()
         if repository is None:
             print("Repository is not initialized (consider running the solver first)")
-            return
+            return False
         populations = repository.getPopulations()
         if populations is None or len(populations) == 0:
             print("There aren't any paths available (consider running the solver first)")
-            return
-        self.runChoosePopulation(populations)
+            return False
+        return True
+
+    def runVisualiseStatistics(self):
+        firstCondition = self.preconditionsValidation()
+        if firstCondition:
+            if self.__statistics is None or len(self.__statistics) == 0:
+                print("There isn't any statistical data about the solutions (consider running the solver first)")
+                return
+            else:
+                fitnesses = []
+                print("No. run\tSeed for random\tFitness\tStandard deviation")
+                for statistic in self.__statistics:
+                    avgFitness = mean(statistic[1])
+                    stdFitness = stdev(statistic[1])
+                    print(str(statistic[0]) + "\t" + "0" + "\t" + str(avgFitness) + "\t" + str(stdFitness))
+                    fitnesses.append(avgFitness)
+                indexes = [i for i in range(len(self.__statistics))]
+                plt.plot(indexes, fitnesses)
+                time.sleep(5)
+
+    def runViewDrone(self):
+        condition = self.preconditionsValidation()
+        if condition:
+            self.runChoosePopulation(self.__controller.getRepository().getPopulations())
 
     def runChoosePopulation(self, populations):
         numberOfPopulations = len(populations)
@@ -265,7 +287,7 @@ class UI:
                     self.runChooseIndividual(population)
 
     def runChooseIndividual(self, population):
-        numberOfIndividuals = len(population)
+        numberOfIndividuals = len(population.getIndividuals())
         done = False
         while not done:
             print("There are " + str(numberOfIndividuals) + " individuals in the population.")
@@ -285,7 +307,7 @@ class UI:
                     time.sleep(0.5)
                 else:
                     currentMap = self.__controller.getRepository().getMap()
-                    path = population[individualNumber]
+                    path = population.getIndividuals()[individualNumber].getChromosome()
                     speed = SPEED
                     markSeen = MARK_SEEN
                     movingDrone(currentMap, path, speed, markSeen)
