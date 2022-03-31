@@ -34,7 +34,7 @@ def closePyGame():
     pygame.quit()
 
 
-def movingDrone(currentMap, path, speed=1, markSeen=True):
+def movingDrone(currentMap, path, speed=SPEED, markSeen=MARK_SEEN):
     # animation of a drone on a path
 
     screen = initPyGame((currentMap.n * U, currentMap.m * U))

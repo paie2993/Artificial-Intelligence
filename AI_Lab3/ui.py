@@ -3,9 +3,9 @@
 
 # imports
 from gui import *
-from controller import *
 from repository import *
 from domain import *
+from controller import Controller
 
 
 class UI:
@@ -22,6 +22,8 @@ class UI:
             "mutateProbability": MUTATE_PROBABILITY
         }
         self.__mapM = None
+        self.__statistics = None
+        self.__controller = None
 
     def mainMenu(self):
         print("1. map options\n" +
@@ -42,10 +44,18 @@ class UI:
               "d. view the drone moving on a path\n" +
               "x. back\n\n")
 
-    def menuParameters(self):
-        done = False
-        while not done:
-            pass
+    def menuParametersSetup(self):
+        print("a. view parameters\n" +
+              "b. random map fill\n" +
+              "c. total runs\n" +
+              "d. iterations per run\n" +
+              "e. population size\n" +
+              "f. individual chromosome size\n" +
+              "g. selection size\n" +
+              "h. selection pressure\n" +
+              "i. crossover probability\n" +
+              "j. mutate probability\n" +
+              "x. back\n\n")
 
     def runMain(self):
         done = False
@@ -71,15 +81,15 @@ class UI:
             self.menuMap()
             option = input("Option: ").strip().lower()
             if option == "a":
-                mapM = Map()
-                mapM.randomMap(RANDOM_MAP_FILL)
+                self.__mapM = Map()
+                self.__mapM.randomMap(RANDOM_MAP_FILL)
             elif option == "b":
                 fileName = input("file name = ").strip()
                 if whitespace in fileName:
                     print("Spaces are not allowed in file names: " + fileName)
                 else:
                     try:
-                        mapM = pickle.load(open(fileName, "rb"))
+                        self.__mapM = pickle.load(open(fileName, "rb"))
                     except Exception as ex:
                         print(ex)
             elif option == "c":
@@ -111,12 +121,14 @@ class UI:
             self.menuEA()
             option = input("Option: ").strip().lower()
             if option == "a":
-                pass
+                print()
+                self.runParametersSetup()
             elif option == "b":
-                pass
+                self.runSolver()
             elif option == "c":
-                pass
+                self.runVisualiseStatistics()
             elif option == "d":
+                self.runViewDrone()
                 pass
             elif option == "x":
                 done = True
@@ -124,6 +136,156 @@ class UI:
                 print("Invalid command")
                 time.sleep(0.5)
 
-#         d. view the drone moving on a path
-#              function gui.movingDrone(currentMap, path, speed, markSeen)
-#              ATENTION! the function doesn't check if the path passes trough walls
+    def runParametersSetup(self):
+        done = False
+        while not done:
+            self.menuParametersSetup()
+            option = input("Option: ").strip().lower()
+            if option == "a":
+                for key in self.__parameters:
+                    print(key + ": " + self.__parameters[key])
+                print()
+            elif option == "b":
+                try:
+                    value = float(input("random map fill (0 < x < 1) = "))
+                    self.__parameters["randomMapFill"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "c":
+                try:
+                    value = int(input("total runs (1 <= x) = "))
+                    self.__parameters["totalRuns"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "d":
+                try:
+                    value = int(input("iterations per run (1 <= x) = "))
+                    self.__parameters["iterationsPerRun"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "e":
+                try:
+                    value = int(input("population size (2 <= x) = "))
+                    self.__parameters["populationSize"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "f":
+                try:
+                    value = int(input("individual chromosome size (1 <= x) = "))
+                    self.__parameters["individualChromosomeSize"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "g":
+                try:
+                    value = int(input("selection size (2 <= x) = "))
+                    self.__parameters["selectionSize"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "h":
+                try:
+                    value = float(input("selection pressure (1 < x <= 2) = "))
+                    self.__parameters["selectionPressure"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "i":
+                try:
+                    value = float(input("crossover probability (0 <= x <= 1) = "))
+                    self.__parameters["crossoverProbability"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "j":
+                try:
+                    value = float(input("mutate probability (0 < x <= 1) = "))
+                    self.__parameters["mutateProbability"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "x":
+                done = True
+            else:
+                print("Invalid command")
+                time.sleep(0.5)
+
+    def runSolver(self):
+        if self.__mapM is None:
+            print("No map defined")
+            return
+        # instantiate the necessary objects
+        repository = Repository(self.__mapM)
+        self.__controller = Controller(repository)
+
+        # initialize the arguments for the solver
+        totalRuns = self.__parameters["totalRuns"]
+        noIterations = self.__parameters["iterationsPerRun"]
+        populationSize = self.__parameters["populationSize"]
+        individualChromosomeSize = self.__parameters["individualChromosomeSize"]
+
+        # run the solver and retrieve the information
+        statistics = self.__controller.solver(totalRuns, noIterations, populationSize, individualChromosomeSize)
+        self.__statistics = statistics
+
+    def runVisualiseStatistics(self):
+
+        pass
+
+    def runViewDrone(self):
+        if self.__controller is None:
+            print("Controller is not initialized (consider running the solver first)")
+            return
+        repository = self.__controller.getRepository()
+        if repository is None:
+            print("Repository is not initialized (consider running the solver first)")
+            return
+        populations = repository.getPopulations()
+        if populations is None or len(populations) == 0:
+            print("There aren't any paths available (consider running the solver first)")
+            return
+        self.runChoosePopulation(populations)
+
+    def runChoosePopulation(self, populations):
+        numberOfPopulations = len(populations)
+        done = False
+        while not done:
+            print("There are " + str(numberOfPopulations) + " populations.")
+            option = input("Choose one (from 0 to " + str(numberOfPopulations - 1) + " , x to quit): ").strip().lower()
+            if option == "x":
+                done = True
+            else:
+                populationNumber = -1
+                try:
+                    populationNumber = int(option)
+                except Exception as ex:
+                    print(ex)
+                    print("Invalid option: " + option)
+                    time.sleep(0.5)
+                if populationNumber < 0 or populationNumber >= numberOfPopulations:
+                    print("Invalid population number")
+                    time.sleep(0.5)
+                else:
+                    population = populations[populationNumber]
+                    self.runChooseIndividual(population)
+
+    def runChooseIndividual(self, population):
+        numberOfIndividuals = len(population)
+        done = False
+        while not done:
+            print("There are " + str(numberOfIndividuals) + " individuals in the population.")
+            option = input("Choose one (from 0 to " + str(numberOfIndividuals - 1) + " , x to quit): ").strip().lower()
+            if option == "x":
+                done = True
+            else:
+                individualNumber = -1
+                try:
+                    individualNumber = int(option)
+                except Exception as ex:
+                    print(ex)
+                    print("Invalid option: " + option)
+                    time.sleep(0.5)
+                if individualNumber < 0 or individualNumber >= numberOfIndividuals:
+                    print("Invalid individual number: " + str(individualNumber))
+                    time.sleep(0.5)
+                else:
+                    currentMap = self.__controller.getRepository().getMap()
+                    path = population[individualNumber]
+                    speed = SPEED
+                    markSeen = MARK_SEEN
+                    movingDrone(currentMap, path, speed, markSeen)

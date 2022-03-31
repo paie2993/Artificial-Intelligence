@@ -1,15 +1,14 @@
 from repository import *
-from random import choice
 
 
 class Controller:
     def __init__(self, repository=Repository()):
         self.__repository = repository
 
-    def setMap(self, mapM):
-        self.__repository.setMap(mapM)
+    def getRepository(self):
+        return self.__repository
 
-    def iteration(self, population, k=SELECTION_SIZE):
+    def __iteration(self, population, k=SELECTION_SIZE):
         # selection of parents
         winners = population.selection(k)
 
@@ -24,27 +23,29 @@ class Controller:
         # selection of the survivors
         population.survivalOfTheFittest(offspring)
 
-    def run(self, population, noIterations=NO_ITERATIONS):
+    def __run(self, population, noIterations=NO_ITERATIONS):
         fitnesses = []
 
         for i in range(noIterations):
-            self.iteration(population)
+            self.__iteration(population)
             # save the information needed for the statistics
             currentFitness = population.evaluate()
             fitnesses.append(currentFitness)
 
         return fitnesses
 
-    def solver(self, totalRuns=TOTAL_RUNS, populationSize=POPULATION_SIZE, individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
-        # create the population,
-        population = self.__repository.createPopulation(populationSize, individualChromosomeSize)
-        noIterations = NO_ITERATIONS
+    def solver(self, totalRuns=TOTAL_RUNS, noIterations=NO_ITERATIONS, populationSize=POPULATION_SIZE,
+               individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
 
         # run the algorithm
-        results = []
+        statistics = []
         for i in range(totalRuns):
-            runResults = self.run(population, noIterations)
-            results.append(runResults)
+            # create the population,
+            population = self.__repository.createPopulation(populationSize, individualChromosomeSize)
 
-        # return the results and the statistics
-        return results
+            # runResult = all the fitnesses from every iteration, for the currently tested population
+            runResults = self.__run(population, noIterations)
+
+            statistics.append(runResults)
+
+        return statistics
