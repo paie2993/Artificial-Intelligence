@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 from copy import deepcopy
-from random import randint, random
+from random import randint, random, choice
 from utils import *
 from functools import reduce
 
@@ -13,7 +13,7 @@ class Map:
     def __init__(self, n=mapLength, m=mapLength):
         self.n = n
         self.m = m
-        self.surface = [[0 for j in range(self.n)] for i in range(self.m)]
+        self.surface = [[0 for j in range(self.m)] for i in range(self.n)]
 
     def randomMap(self, fill=RANDOM_MAP_FILL):
         for i in range(self.n):
@@ -68,6 +68,10 @@ def areNeighbours(firstSquare, secondSquare):
     return False
 
 
+def manhattanDistance(firstSquare, secondSquare):
+    return abs(firstSquare[0] - secondSquare[0]) + abs(firstSquare[1] - secondSquare[1])
+
+
 class Gene:
     def __init__(self, lower, upper):
         self.code = [randint(lower, upper), randint(lower, upper)]
@@ -75,12 +79,29 @@ class Gene:
 
 
 class Individual:
-    def __init__(self, chromosomeSize=0, mapM=Map()):
+    def __init__(self, chromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE, mapM=Map()):
+        self.__mapM = mapM
         self.__chromosomeSize = chromosomeSize
         # Linear discrete non-binary integer random representation
-        self.__chromosome = [Gene(0, mapM.n) for i in range(self.__chromosomeSize)]
+        # self.__chromosome = [Gene(0, mapM.n) for i in range(self.__chromosomeize)]
+        self.__chromosome = None
         self.__fitness = None
-        self.__mapM = mapM
+        self.__createChromosome(0, self.__mapM.n, chromosomeSize)
+
+    def __createChromosome(self, lower, upper, length=INDIVIDUAL_CHROMOSOME_SIZE):
+        firstGene = Gene(lower, upper)
+        self.__chromosome = [firstGene]
+        for i in range(1, length):
+            prevGene = self.__chromosome[-1]
+            newGene = Gene(lower, upper)
+            direction = choice(v)
+            newGene.code[0] = prevGene.code[0] + direction[0]
+            newGene.code[1] = prevGene.code[1] + direction[1]
+            while not self.__mapM.isValid(newGene.code):
+                direction = choice(v)
+                newGene.code[0] = prevGene.code[0] + direction[0]
+                newGene.code[1] = prevGene.code[1] + direction[1]
+            self.__chromosome.append(newGene)
 
     def getChromosome(self):
         return self.__chromosome
@@ -97,17 +118,19 @@ class Individual:
         # 2. paths must not include bricks
         # 3. paths must cover as many empty squares as possible
 
-        # discontinuous sections of the map
-        nonContinuous = 0
-        for i in range(self.__chromosomeSize - 1):
-            if not areNeighbours(self.__chromosome[i].code, self.__chromosome[i + 1].code):
-                nonContinuous += 1
-
         # paths must not include bricks and all squares must be inside the map
         nonValid = 0
         for gene in self.__chromosome:
             if not self.__mapM.isValid(gene.code) or self.__mapM.isBrick(gene.code):
                 nonValid += 1
+
+        # discontinuous sections of the map
+        nonContinuous = 0
+        for i in range(self.__chromosomeSize - 1):
+            if not areNeighbours(self.__chromosome[i].code, self.__chromosome[i + 1].code) and \
+                    self.__mapM.isValid(self.__chromosome[i].code) and \
+                    self.__mapM.isValid(self.__chromosome[i + 1].code):
+                nonContinuous += manhattanDistance(self.__chromosome[i].code, self.__chromosome[i + 1].code)
 
         # paths must cover as many empty squares as possible
         seenSquares = set()
@@ -131,13 +154,13 @@ class Individual:
             gene.code[coordinate] = abs(gene.code[0] + value) % self.__mapM.n
 
     # Uses creep mutation
-    def mutate(self, mutateProbability=0.04):
+    def mutate(self, mutateProbability=MUTATE_PROBABILITY):
         creepValue = max(1, int(self.__mapM.n / self.__chromosomeSize))
         signProbability = 0.5
 
         for gene in self.__chromosome:
-            self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 0)
-            self.__creepMutation(creepValue, signProbability, mutateProbability, gene, 1)
+            self.__creepMutation(creepValue + randint(0, 2), signProbability, mutateProbability, gene, 0)
+            self.__creepMutation(creepValue + randint(0, 2), signProbability, mutateProbability, gene, 1)
 
     # Implements uniform crossover
     def crossover(self, otherParent, crossoverProbability=0.5):
@@ -150,8 +173,8 @@ class Individual:
                 offspring1.__chromosome[i].code = deepcopy(self.__chromosome[i].code)
                 offspring2.__chromosome[i].code = deepcopy(otherParent.__chromosome[i].code)
             else:
-                offspring1.__chromosome[i].code = deepcopy(self.__chromosome[i].code)
-                offspring2.__chromosome[i].code = deepcopy(otherParent.__chromosome[i].code)
+                offspring2.__chromosome[i].code = deepcopy(self.__chromosome[i].code)
+                offspring1.__chromosome[i].code = deepcopy(otherParent.__chromosome[i].code)
 
         return offspring1, offspring2
 

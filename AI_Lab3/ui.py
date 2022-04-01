@@ -85,7 +85,7 @@ class UI:
             option = input("Option: ").strip().lower()
             if option == "a":
                 self.__mapM = Map()
-                self.__mapM.randomMap(RANDOM_MAP_FILL)
+                self.__mapM.randomMap(self.__parameters["randomMapFill"])
             elif option == "b":
                 fileName = input("file name = ").strip()
                 if whitespace in fileName:
@@ -251,7 +251,8 @@ class UI:
                 for statistic in self.__statistics:
                     avgFitness = mean(statistic[2])
                     stdFitness = stdev(statistic[2])
-                    print(str(statistic[0]) + "\t\t\t" + str(statistic[1]) + "\t\t\t" + str(avgFitness) + "\t" + str(stdFitness))
+                    print(str(statistic[0]) + "\t\t\t" + str(statistic[1]) + "\t\t\t\t" + str(avgFitness) + "\t" + str(
+                        stdFitness))
 
                     iterations = [i for i in range(len(statistic[2]))]
                     fitnesses = statistic[2]
@@ -260,7 +261,6 @@ class UI:
                     plt.ylabel("fitnesses")
                     plt.show()
                     time.sleep(1)
-
 
     def runViewDrone(self):
         condition = self.preconditionsValidation()
