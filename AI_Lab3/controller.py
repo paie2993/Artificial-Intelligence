@@ -31,6 +31,7 @@ class Controller:
             # save the information needed for the statistics
             currentFitness = population.evaluate()
             fitnesses.append(currentFitness)
+            print(currentFitness)
 
         return fitnesses
 
@@ -40,12 +41,19 @@ class Controller:
         # run the algorithm
         statistics = []
         for i in range(totalRuns):
+            # seed the run
+            runSeed = choice(SEEDS)
+            seed(runSeed)
+
             # create the population,
             population = self.__repository.createPopulation(populationSize, individualChromosomeSize)
 
             # runResult = all the fitnesses from every iteration, for the currently tested population
             runResults = self.__run(population, noIterations)
 
-            statistics.append([i, runResults])
+            # i = integer, number of the run
+            # runSeed = integer, seed of the run
+            # runResults = list of integers, representing the fitnesses of the population at every iteration
+            statistics.append([i, runSeed, runResults])
 
         return statistics

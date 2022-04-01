@@ -115,8 +115,6 @@ class Individual:
             if self.__mapM.isValid(gene.code):
                 self.__mapM.visibleSquares(gene.code, seenSquares)
 
-        print("Passed")
-
         # fitness = - number of seen squares * (discontinuous tracks + bricks)
         fitnessValue = - len(seenSquares) * (nonContinuous + nonValid)
         self.__fitness = fitnessValue

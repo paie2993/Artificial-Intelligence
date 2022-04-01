@@ -156,7 +156,7 @@ class UI:
                     print(ex)
             elif option == "c":
                 try:
-                    value = int(input("total runs (1 <= x) = "))
+                    value = int(input("total runs (1 <= x <= 60) = "))
                     self.__parameters["totalRuns"] = value
                 except Exception as ex:
                     print(ex)
@@ -247,16 +247,20 @@ class UI:
                 print("There isn't any statistical data about the solutions (consider running the solver first)")
                 return
             else:
-                fitnesses = []
-                print("No. run\tSeed for random\tFitness\tStandard deviation")
+                print("No. run|\tSeed for random|\tFitness|\t\ttStandard deviation|")
                 for statistic in self.__statistics:
-                    avgFitness = mean(statistic[1])
-                    stdFitness = stdev(statistic[1])
-                    print(str(statistic[0]) + "\t" + "0" + "\t" + str(avgFitness) + "\t" + str(stdFitness))
-                    fitnesses.append(avgFitness)
-                indexes = [i for i in range(len(self.__statistics))]
-                plt.plot(indexes, fitnesses)
-                time.sleep(5)
+                    avgFitness = mean(statistic[2])
+                    stdFitness = stdev(statistic[2])
+                    print(str(statistic[0]) + "\t\t\t" + str(statistic[1]) + "\t\t\t" + str(avgFitness) + "\t" + str(stdFitness))
+
+                    iterations = [i for i in range(len(statistic[2]))]
+                    fitnesses = statistic[2]
+                    plt.plot(iterations, fitnesses)
+                    plt.xlabel("iterations")
+                    plt.ylabel("fitnesses")
+                    plt.show()
+                    time.sleep(1)
+
 
     def runViewDrone(self):
         condition = self.preconditionsValidation()

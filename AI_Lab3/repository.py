@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import pickle
+from random import choice
+from random import seed
 from domain import *
 
 
@@ -20,6 +22,7 @@ class Repository:
 
     def createPopulation(self, populationSize=POPULATION_SIZE, individualChromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE):
         population = Population(populationSize, individualChromosomeSize, self.__mapM)
+
         if self.__populations is None:
             self.__populations = [population]
         else:
