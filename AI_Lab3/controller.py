@@ -1,3 +1,5 @@
+import datetime
+
 from repository import *
 
 
@@ -43,6 +45,10 @@ class Controller:
         # run the algorithm
         statistics = []
         for i in range(totalRuns):
+            print("run " + str(i))
+
+            startTime = datetime.datetime.now()
+
             # seed the run
             runSeed = choice(SEEDS)
             seed(runSeed)
@@ -54,10 +60,15 @@ class Controller:
             # runResult = all the fitnesses from every iteration, for the currently tested population
             runResults = self.__run(population, noIterations, k, crossoverProbability)
 
+            endTime = datetime.datetime.now()
+            runTime = endTime - startTime
+
             # i = integer, number of the run
             # runSeed = integer, seed of the run
             # runResults = list of integers, representing the fitnesses of the population at every iteration
-            statistics.append([i, runSeed, runResults])
+            statistics.append([i, runSeed, runResults, runTime])
+
+            print("---------------------------------------------------------")
 
         return statistics
 

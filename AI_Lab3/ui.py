@@ -276,12 +276,13 @@ class UI:
                 print("There isn't any statistical data about the solutions (consider running the solver first)")
                 return
             else:
-                print("No. run|\tSeed for random|\tFitness|\t\ttStandard deviation|")
+                print("No. run|\tSeed for random|\tFitness|\t\tStandard deviation|\t\t\tExecution time")
                 for statistic in self.__statistics:
                     avgFitness = mean(statistic[2])
                     stdFitness = stdev(statistic[2])
-                    print(str(statistic[0]) + "\t\t\t" + str(statistic[1]) + "\t\t\t\t" + str(avgFitness) + "\t" + str(
-                        stdFitness))
+                    execTime = statistic[3]
+                    print(str(statistic[0]) + "\t\t\t" + str(statistic[1]) + "\t\t\t\t\t" + str(
+                        avgFitness) + "\t\t\t" + str(stdFitness) + "\t\t" + str(execTime))
 
                     iterations = [i for i in range(len(statistic[2]))]
                     fitnesses = statistic[2]

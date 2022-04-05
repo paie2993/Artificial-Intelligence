@@ -90,6 +90,10 @@ def switch(first, second):
     return first, second
 
 
+def manhattanDistance(firstSquare, secondSquare):
+    return abs(firstSquare[0] - secondSquare[0]) + abs(firstSquare[1] - secondSquare[1])
+
+
 class Individual:
     def __init__(self, initialX=INITIAL_X, initialY=INITIAL_Y, chromosomeSize=INDIVIDUAL_CHROMOSOME_SIZE, mapM=Map()):
         self.__mapM = mapM
@@ -122,6 +126,12 @@ class Individual:
             currentY = previous[1] + direction[1]
             path.append([currentX, currentY])
 
+        # find the final square of the path
+        # we'd like it to coincide with the root square,
+        # otherwise, we'll penalize the individual by the distance
+        # between the root square and final square, multiplied by a factor
+        finalSquare = path[-1]
+
         # 1. penalize Individuals who's chromosome contains invalid genes or genes representing bricks
         nonValid = 0
         for square in path:
@@ -140,6 +150,9 @@ class Individual:
             # by adding nonValid squares as positive value to the fitness, then negating the fitness values if nonValid
             # is not zero, paths that contain bricks or invalid squares are deterred
             fitnessValue = - fitnessValue
+
+        factor = 7.63 * 2
+        fitnessValue = fitnessValue - manhattanDistance(rootSquare, finalSquare) * factor
 
         self.__fitness = fitnessValue
         return fitnessValue
@@ -389,7 +402,7 @@ class Population:
 
         # at the end of the competition, the surviving individuals in the arena form our population
         self.__individuals = arena
-        # TODO: make sure that Individuals with invalid squares are thrown outside
+        # TODO: make sure that individuals with invalid genes are not allowed into the population
 
 
 def matingSeason(winners, crossoverProbability=CROSSOVER_PROBABILITY):
