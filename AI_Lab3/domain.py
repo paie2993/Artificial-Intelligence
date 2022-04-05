@@ -4,6 +4,7 @@ from copy import deepcopy
 from random import randint, random, choice
 from utils import *
 from functools import reduce
+from math import e
 
 
 # the class Gene can be replaced with int or float, or other types
@@ -214,15 +215,17 @@ class Individual:
         secondParent = otherParent
 
         for i in range(self.__chromosomeSize):
-            if cuttingPoints[0] == i:
+            if len(cuttingPoints) > 0 and cuttingPoints[0] == i:
                 # switch parents
                 firstParent, secondParent = switch(firstParent, secondParent)
 
                 # passed a cutting point, parents were switched
                 cuttingPoints.pop(0)
 
-            offspring1.__chromosome.genes[i].code = deepcopy(firstParent.genes[i].code)
-            offspring2.__chromosome.genes[i].code = deepcopy(secondParent.genes[i].code)
+            offspring1.__chromosome.genes[i].code = [firstParent.__chromosome.genes[i].code[0],
+                                                     firstParent.__chromosome.genes[i].code[1]]
+            offspring2.__chromosome.genes[i].code = [secondParent.__chromosome.genes[i].code[0],
+                                                     secondParent.__chromosome.genes[i].code[1]]
 
         return offspring1, offspring2
         # TODO: from a crossover, try to select a random one, or one that is beneficial
@@ -254,6 +257,11 @@ class Population:
         return (2 - selectionPressure) / self.__populationSize + \
                2 * rank * (selectionPressure - 1) / (self.__populationSize * (self.__populationSize - 1))
 
+    def __exponentialRanking(self, rank):
+        if rank < 1:
+            raise Exception("Rank incorrectly specified: " + str(rank))
+        return (1 - e ** (-rank)) / self.__populationSize
+
     # perform a selection of k individuals from the population
     # and returns that selection
     # Implements rank selection
@@ -278,6 +286,10 @@ class Population:
         # the fittest should be the last, with the highest rank <==> index (equivalent)
         rankedList.sort(reverse=False, key=Individual.fitness)
 
+        # for individual in rankedList:
+        #     print("fitness = " + str(individual.fitness()))
+        # print("-------------------------------------------")
+
         # pair every individual with their linear ranking
         linearlyRankedList = []
         for i in range(len(rankedList)):
@@ -285,6 +297,10 @@ class Population:
             linearlyRankedList.append((rankedList[i], self.__linearRanking(selectionPressure, i + 1)))
         # order individuals such that the fittest are the first, the weakest last
         linearlyRankedList.reverse()
+
+        # for pair in linearlyRankedList:
+        #     print("fitness = " + str(pair[0].fitness()) + ", " + str(pair[1]))
+        # print("---------------------------------------------")
 
         # self.__populationSize == len(rankedList) == len(linearlyRankedList)
 
@@ -303,8 +319,44 @@ class Population:
                     break
                 j += 1
 
-        for win in winners:
-            print("fitness = " + str(win.fitness()))
+        """
+        # pair every individual with their exponential ranking
+        expRankedList = []
+        for i in range(len(rankedList)):
+            # the lowest rank is 1, so for the element with index i, rank is i + 1 (indexing starts from 0)
+            expRankedList.append((rankedList[i], self.__exponentialRanking(i + 1)))
+        # order individuals such that the fittest are the first, the weakest last
+        expRankedList.reverse()
+
+        for pair in expRankedList:
+            print("fitness = " + str(pair[0].fitness()) + ", " + str(pair[1]))
+        print("---------------------------------------------")
+
+        sum = functools.reduce(lambda a,b: a + b, [pair[1] for pair in expRankedList])
+        print("sum of expRanks = " + str(sum))
+        print("---------------------------------------------")
+
+        # self.__populationSize == len(rankedList) == len(linearlyRankedList)
+
+        # select k winners
+        winners = []
+        for i in range(k):
+            threshold = random()
+            partialSum = 0
+            j = 0
+            while partialSum < threshold and j < len(expRankedList):
+                partialSum += expRankedList[j][1]
+                # if the partial sum passes the threshold when the value of the current's individual linear rank
+                # is added, then add the current individual to the list of winners
+                if partialSum >= threshold:
+                    winners.append(expRankedList[j][0])
+                    break
+                j += 1
+                
+        """
+
+        # for win in winners:
+        #     print("fitness = " + str(win.fitness()))
 
         return winners
 
@@ -318,13 +370,22 @@ class Population:
             if not isinstance(challenger, Individual):
                 raise Exception("Only Individuals can enter the population")
 
+        # print(len(challengers))
+        # for c in challengers:
+        #     print("fitness = " + str(c.fitness()))
+        # print("------------------------------")
+
         arena = self.__individuals + challengers
 
         # ELITISM: only the fittest survive from one generation to another
-        arena.sort(reverse=True, key=self.sortFunc)
+        arena.sort(reverse=True, key=Individual.fitness)
         while len(arena) > self.__populationSize:
             # keep removing the weakest individuals until the demographics stabilizes
             arena.pop(-1)
+
+        # for s in arena:
+        #     print("fitness = " + str(s.fitness()))
+        # print("------------------------------")
 
         # at the end of the competition, the surviving individuals in the arena form our population
         self.__individuals = arena
@@ -342,12 +403,12 @@ def matingSeason(winners, crossoverProbability=CROSSOVER_PROBABILITY):
     # winners should contain an even numbers of individuals
     while len(winners) > 0:
 
-        first = randint(0, len(winners))
-        second = randint(0, len(winners))
+        first = randint(0, len(winners) - 1)
+        second = randint(0, len(winners) - 1)
         i = 0
-        while first != second and i < beforeBreak:
-            first = randint(0, len(winners))
-            second = randint(0, len(winners))
+        while first == second and i < beforeBreak:
+            first = randint(0, len(winners) - 1)
+            second = randint(0, len(winners) - 1)
         if first == second:
             break
 

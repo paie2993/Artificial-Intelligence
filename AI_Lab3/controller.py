@@ -13,14 +13,14 @@ class Controller:
         winners = population.selection(k)
 
         # create offspring by crossover of the parents
-        # offspring = matingSeason(winners, crossoverProbability)
+        offspring = matingSeason(winners, crossoverProbability)
 
         # apply some mutations
         mutateProbability = MUTATE_PROBABILITY
         population.mutationSeason(mutateProbability)
 
         # selection of the survivors
-        # population.survivalOfTheFittest(offspring)
+        population.survivalOfTheFittest(offspring)
 
     def __run(self, population, noIterations=NO_ITERATIONS, k=SELECTION_SIZE,
               crossoverProbability=CROSSOVER_PROBABILITY):
@@ -32,7 +32,7 @@ class Controller:
             # save the information needed for the statistics
             currentFitness = population.evaluate()
             fitnesses.append(currentFitness)
-            print(currentFitness)
+            # print(currentFitness)
 
         return fitnesses
 
