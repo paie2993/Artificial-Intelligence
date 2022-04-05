@@ -7,7 +7,7 @@ from statistics import mean, stdev
 from gui import *
 from repository import *
 from domain import *
-from controller import Controller
+from controller import Controller, buildPath
 import matplotlib.pyplot as plt
 
 
@@ -15,6 +15,9 @@ class UI:
     def __init__(self):
         self.__parameters = {
             "randomMapFill": RANDOM_MAP_FILL,
+            "mapLength": MAP_LENGTH,
+            "initialX": INITIAL_X,
+            "initialY": INITIAL_Y,
             "totalRuns": TOTAL_RUNS,
             "iterationsPerRun": NO_ITERATIONS,
             "populationSize": POPULATION_SIZE,
@@ -50,14 +53,17 @@ class UI:
     def menuParametersSetup(self):
         print("a. view parameters\n" +
               "b. random map fill\n" +
-              "c. total runs\n" +
-              "d. iterations per run\n" +
-              "e. population size\n" +
-              "f. individual chromosome size\n" +
-              "g. selection size\n" +
-              "h. selection pressure\n" +
-              "i. crossover probability\n" +
-              "j. mutate probability\n" +
+              "c. map length\n" +
+              "d. initial x\n" +
+              "e. initial y\n" +
+              "f. total runs\n" +
+              "g. iterations per run\n" +
+              "h. population size\n" +
+              "i. individual chromosome size\n" +
+              "j. selection size\n" +
+              "k. selection pressure\n" +
+              "l. crossover probability\n" +
+              "m. mutate probability\n" +
               "x. back\n\n")
 
     def runMain(self):
@@ -84,7 +90,7 @@ class UI:
             self.menuMap()
             option = input("Option: ").strip().lower()
             if option == "a":
-                self.__mapM = Map()
+                self.__mapM = Map(self.__parameters["mapLength"])
                 self.__mapM.randomMap(self.__parameters["randomMapFill"])
             elif option == "b":
                 fileName = input("file name = ").strip()
@@ -156,47 +162,65 @@ class UI:
                     print(ex)
             elif option == "c":
                 try:
+                    value = int(input("map length (2 < x) = "))
+                    self.__parameters["mapLength"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "d":
+                try:
+                    value = int(input("initial X (0 < x < mapLength) = "))
+                    self.__parameters["initialX"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "e":
+                try:
+                    value = int(input("initial Y (0 < x < mapLength) = "))
+                    self.__parameters["initialY"] = value
+                except Exception as ex:
+                    print(ex)
+            elif option == "f":
+                try:
                     value = int(input("total runs (1 <= x <= 60) = "))
                     self.__parameters["totalRuns"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "d":
+            elif option == "g":
                 try:
                     value = int(input("iterations per run (1 <= x) = "))
                     self.__parameters["iterationsPerRun"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "e":
+            elif option == "h":
                 try:
                     value = int(input("population size (2 <= x) = "))
                     self.__parameters["populationSize"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "f":
+            elif option == "i":
                 try:
                     value = int(input("individual chromosome size (1 <= x) = "))
                     self.__parameters["individualChromosomeSize"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "g":
+            elif option == "j":
                 try:
                     value = int(input("selection size (2 <= x) = "))
                     self.__parameters["selectionSize"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "h":
+            elif option == "k":
                 try:
                     value = float(input("selection pressure (1 < x <= 2) = "))
                     self.__parameters["selectionPressure"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "i":
+            elif option == "l":
                 try:
                     value = float(input("crossover probability (0 <= x <= 1) = "))
                     self.__parameters["crossoverProbability"] = value
                 except Exception as ex:
                     print(ex)
-            elif option == "j":
+            elif option == "m":
                 try:
                     value = float(input("mutate probability (0 < x <= 1) = "))
                     self.__parameters["mutateProbability"] = value
@@ -220,10 +244,15 @@ class UI:
         totalRuns = self.__parameters["totalRuns"]
         noIterations = self.__parameters["iterationsPerRun"]
         populationSize = self.__parameters["populationSize"]
+        initialX = self.__parameters["initialX"]
+        initialY = self.__parameters["initialY"]
         individualChromosomeSize = self.__parameters["individualChromosomeSize"]
+        k = self.__parameters["selectionSize"]
+        crossoverProbability = self.__parameters["crossoverProbability"]
 
         # run the solver and retrieve the information
-        statistics = self.__controller.solver(totalRuns, noIterations, populationSize, individualChromosomeSize)
+        statistics = self.__controller.solver(totalRuns, noIterations, populationSize, initialX, initialY,
+                                              individualChromosomeSize, k, crossoverProbability)
         self.__statistics = statistics
 
     def preconditionsValidation(self):
@@ -311,7 +340,13 @@ class UI:
                     time.sleep(0.5)
                 else:
                     currentMap = self.__controller.getRepository().getMap()
-                    path = population.getIndividuals()[individualNumber].getChromosome()
+
+                    individual = population.getIndividuals()[individualNumber]
+                    rootSquare = individual.getChromosome().root.code
+                    directions = [gene.code for gene in individual.getChromosome().genes]
+
+                    path = buildPath(rootSquare, directions)
                     speed = SPEED
                     markSeen = MARK_SEEN
+
                     movingDrone(currentMap, path, speed, markSeen)

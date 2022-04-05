@@ -51,8 +51,8 @@ def movingDrone(currentMap, path, speed=SPEED, markSeen=MARK_SEEN):
             for j in range(i + 1):
                 # move in the every direction and changing direction when brick encountered
                 for var in v:
-                    x = path[j].code[0]
-                    y = path[j].code[1]
+                    x = path[j][0]
+                    y = path[j][1]
                     while (0 <= x < currentMap.n and                   # x coordinate inside map limits
                             0 <= y < currentMap.m and                  # y coordinate inside map limits
                             currentMap.surface[x][y] != 1):   # guard against moving on a brick
@@ -60,7 +60,7 @@ def movingDrone(currentMap, path, speed=SPEED, markSeen=MARK_SEEN):
                         x = x + var[0]
                         y = y + var[1]
 
-        screen.blit(drona, (path[i].code[1] * U, path[i].code[0] * U))
+        screen.blit(drona, (path[i][1] * U, path[i][0] * U))
         pygame.display.flip()
         time.sleep(0.5 * speed)
 
